@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>跨境电商经营看板</title>
+  <meta name="description" content="基于 UCI Online Retail II 公开数据的跨境电商经营分析看板：指标口径先行，总览、趋势、国家与品类、客户复购、发现与建议。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/echarts.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <span class="eyebrow"><i></i>Cross-border E-commerce · 经营分析</span>
+      <h1>跨境电商经营看板<span> / 2009–2011</span></h1>
+      <div class="sub">英国线上礼品零售商 · 24 个完整自然月 · 货币：英镑 · 数据：<a href="https://doi.org/10.24432/C5CG6D" target="_blank" rel="noopener">UCI Online Retail II</a>（CC BY 4.0）</div>
+    </div>
+    <button class="btn-island" id="open-defs">指标口径<span class="ico">↗</span></button>
+  </header>
+
+  <div class="dock">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="overview" aria-selected="true"><span class="n">01</span>总览</button>
+      <button role="tab" data-tab="trend" aria-selected="false"><span class="n">02</span>趋势</button>
+      <button role="tab" data-tab="drill" aria-selected="false"><span class="n">03</span>国家与品类</button>
+      <button role="tab" data-tab="retention" aria-selected="false"><span class="n">04</span>客户复购</button>
+      <button role="tab" data-tab="findings" aria-selected="false"><span class="n">05</span>发现与建议</button>
+    </nav>
+    <div class="filters" id="filters">
+      <span class="lbl">时间</span>
+      <label><select id="m-start" aria-label="开始月份"></select> 至 <select id="m-end" aria-label="结束月份"></select></label>
+      <div class="chips" id="presets">
+        <button class="chip" data-n="3">近 3 月</button>
+        <button class="chip" data-n="6">近 6 月</button>
+        <button class="chip" data-n="12">近 12 月</button>
+        <button class="chip" data-n="24">全部</button>
+      </div>
+      <span class="sep"></span>
+      <span class="lbl">市场</span>
+      <label><select id="market" aria-label="市场"></select></label>
+      <span class="spacer"></span>
+      <span class="scope-note" id="scope-note"></span>
+    </div>
+    <div class="filters" id="findings-note" hidden>
+      <span class="scope-note">本页结论固定基于近 12 个月（2010-12 至 2011-11）全部市场，不随筛选变化；数字由 scripts/analysis.py 计算</span>
+    </div>
+  </div>
+
+  <!-- ① 总览 -->
+  <section data-panel="overview">
+    <div class="grid bento" id="kpis"></div>
+    <div class="grid three-one" style="margin-top:20px">
+      <div class="card"><h3>月度 GMV</h3><p class="hint">深色为所选时间段，浅色为去年同月</p><div class="chart" id="ov-trend"></div></div>
+      <div class="card"><h3>市场贡献 Top 8</h3><p class="hint">占所选时间段 GMV 的比例</p><div class="chart" id="ov-country"></div></div>
+    </div>
+    <p class="note" id="ov-note"></p>
+  </section>
+
+  <!-- ② 趋势 -->
+  <section data-panel="trend" hidden>
+    <div class="grid two">
+      <div class="card"><h3>GMV 与净销售额</h3><p class="hint">两者之差即退货额</p><div class="chart" id="tr-gmv"></div></div>
+      <div class="card"><h3>订单数</h3><p class="hint">销售订单（发票）数</p><div class="chart" id="tr-orders"></div></div>
+      <div class="card"><h3>客单价</h3><p class="hint">GMV ÷ 订单数，单位 £</p><div class="chart" id="tr-aov"></div></div>
+      <div class="card"><h3>退货率（金额）</h3><p class="hint">退货额 ÷ GMV；尖峰多由单张大额退货单造成，见发现 3</p><div class="chart" id="tr-ret"></div></div>
+    </div>
+  </section>
+
+  <!-- ③ 国家与品类 -->
+  <section data-panel="drill" hidden>
+    <div class="grid two">
+      <div class="card">
+        <h3>各国家表现</h3><p class="hint">点击某一行，把整页筛选到该国家；国家列表不受"市场"筛选影响</p>
+        <div class="table-scroll"><table class="data" id="country-table"></table></div>
+      </div>
+      <div class="card"><h3>国家 GMV 排名（不含英国）</h3><p class="hint">英国占比过高会压扁其他国家，单独去掉看海外结构</p><div class="chart tall" id="dr-country"></div></div>
+    </div>
+    <div class="grid two" style="margin-top:20px">
+      <div class="card"><h3>品类 GMV 贡献</h3><p class="hint">品类由商品名关键词归类，规则见指标口径</p><div class="chart" id="dr-cat"></div></div>
+      <div class="card"><h3>品类退货率</h3><p class="hint">退货额 ÷ GMV</p><div class="chart" id="dr-cat-ret"></div></div>
+    </div>
+  </section>
+
+  <!-- ④ 客户复购 -->
+  <section data-panel="retention" hidden>
+    <div class="grid kpis6" id="ret-kpis"></div>
+    <div class="card" style="margin-top:20px">
+      <h3>同期群留存</h3>
+      <p class="hint">每行是一批首单在同一个月的客户，格子里是第 N 个月仍下单的比例；只显示首单落在所选时间段的批次。2009-12 是数据起点，这批"新客"里混有老客，留存偏高</p>
+      <div class="chart tall" id="cohort"></div>
+    </div>
+    <div class="grid two" style="margin-top:20px">
+      <div class="card"><h3>客户价值分布</h3><p class="hint">按所选时间段消费额把客户分成 10 组，每组贡献的 GMV 占比</p><div class="chart" id="decile"></div></div>
+      <div class="card"><h3>下单次数分布</h3><p class="hint">所选时间段内每位客户的下单次数</p><div class="chart" id="freq"></div></div>
+    </div>
+  </section>
+
+  <!-- ⑤ 发现与建议 -->
+  <section data-panel="findings" hidden>
+    <div class="grid" id="findings"></div>
+  </section>
+
+  <footer>
+    数据来源：Chen, D. (2019). Online Retail II [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5CG6D ，CC BY 4.0。
+    本看板为个人作品，数据经过清洗与聚合（清洗规则见仓库 docs/清洗日志.md），不代表该公司官方数字。
+  </footer>
+</div>
+
+<dialog id="defs">
+  <span class="eyebrow"><i></i>Metric definitions</span>
+  <h2>指标口径</h2>
+  <table>
+    <tr><td>GMV</td><td>销售订单（发票号不以 C 开头）里商品行的 数量 × 单价 之和；不扣退货、不含邮费和手续费</td></tr>
+    <tr><td>退货额</td><td>退货单（发票号以 C 开头）里商品行金额的绝对值；按退货单日期归属，不回溯原订单</td></tr>
+    <tr><td>净销售额</td><td>GMV − 退货额</td></tr>
+    <tr><td>退货率</td><td>退货额 ÷ GMV（金额口径）</td></tr>
+    <tr><td>订单数</td><td>销售订单去重发票数</td></tr>
+    <tr><td>客单价</td><td>GMV ÷ 订单数（每单，不是每人）</td></tr>
+    <tr><td>复购率</td><td>所选时间段内下单 ≥ 2 次的客户 ÷ 下单客户；只统计有客户编号的订单；时间段越长越高，只能同长度比较</td></tr>
+    <tr><td>同期群留存</td><td>首单在 M 月的客户中，第 M+N 月又下单的比例</td></tr>
+    <tr><td>环比 / 同比</td><td>和上一个等长时间段比 / 和去年同期比（无完整去年数据时不显示）</td></tr>
+    <tr><td>品类</td><td>原数据无品类字段，按商品名关键词归为 8 类 + 其他，"其他"约占 GMV 9.8%</td></tr>
+    <tr><td>清洗</td><td>去完全重复行；只保留商品行；单价 &gt; 0；只取 24 个完整自然月（2011-12 仅 9 天，已排除）</td></tr>
+  </table>
+  <p style="text-align:right;margin:14px 0 0"><button class="btn-island" id="close-defs">关闭<span class="ico">×</span></button></p>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
